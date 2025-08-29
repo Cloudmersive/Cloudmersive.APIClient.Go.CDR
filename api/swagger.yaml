@@ -1,0 +1,66 @@
+---
+swagger: "2.0"
+info:
+  description: "Use the Content Disarm and Reconstruction API to remove security risks\
+    \ from documents by tearing them down, removing unsafe content and rebuilding\
+    \ them."
+  version: "v1"
+  title: "CDR API"
+  termsOfService: "https://portal.cloudmersive.com/terms-of-service"
+host: "api.cloudmersive.com"
+schemes:
+- "https"
+security:
+- Apikey: []
+paths:
+  /cdr/sanitization/file:
+    post:
+      tags:
+      - "FileSanitization"
+      summary: "Complete Content Disarm and Reconstruction on an Input File, and output\
+        \ in same file format"
+      description: "Processes the input file via CDR to produce a secured output file.\
+        \  Input content is parsed, disarmed, and then reconstructed into a new output\
+        \ file with the same file format as the input."
+      operationId: "File"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "InputFile"
+        in: "formData"
+        description: "Input document, or photos of a document, to extract data from"
+        required: false
+        type: "file"
+        x-exportParamName: "InputFile"
+      responses:
+        "200":
+          description: "OK"
+  /cdr/sanitization/file/to/pdf:
+    post:
+      tags:
+      - "FileSanitization"
+      summary: "Complete Content Disarm and Reconstruction on an Input File with PDF/A\
+        \ Output"
+      description: "Processes the input file via CDR to produce a secured PDF/A output\
+        \ file.  Input content is parsed, disarmed, and then reconstructed into a\
+        \ new PDF/A output file."
+      operationId: "FileToPdf"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "InputFile"
+        in: "formData"
+        description: "Input document, or photos of a document, to extract data from"
+        required: false
+        type: "file"
+        x-exportParamName: "InputFile"
+      responses:
+        "200":
+          description: "OK"
+securityDefinitions:
+  Apikey:
+    description: "API Key Authentication"
+    type: "apiKey"
+    name: "Apikey"
+    in: "header"
+definitions: {}
