@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"strings"
 	"os"
+	"github.com/antihax/optional"
 )
 
 // Linger please
@@ -27,26 +28,26 @@ var (
 type FileSanitizationApiService service
 
 /* 
-FileSanitizationApiService Complete Content Disarm and Reconstruction on an Input File, and output in same file format
+FileSanitizationApiService Content Disarm and Reconstruction on a File
 Processes the input file via CDR to produce a secured output file.  Input content is parsed, disarmed, and then reconstructed into a new output file with the same file format as the input.
  * @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  * @param optional nil or *FileSanitizationApiFileOpts - Optional Parameters:
      * @param "InputFile" (optional.Interface of *os.File) -  Input document, or photos of a document, to extract data from
 
-
+@return string
 */
 
 type FileSanitizationApiFileOpts struct { 
 	InputFile optional.Interface
 }
 
-func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals *FileSanitizationApiFileOpts) (*http.Response, error) {
+func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals *FileSanitizationApiFileOpts) (string, *http.Response, error) {
 	var (
 		localVarHttpMethod = strings.ToUpper("Post")
 		localVarPostBody   interface{}
 		localVarFileName   string
 		localVarFileBytes  []byte
-		
+		localVarReturnValue string
 	)
 
 	// create path and map variables
@@ -66,7 +67,7 @@ func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals
 	}
 
 	// to determine the Accept header
-	localVarHttpHeaderAccepts := []string{}
+	localVarHttpHeaderAccepts := []string{"application/octet-stream"}
 
 	// set Accept header
 	localVarHttpHeaderAccept := selectHeaderAccept(localVarHttpHeaderAccepts)
@@ -78,7 +79,7 @@ func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals
 		localVarFileOk := false
 		localVarFile, localVarFileOk = localVarOptionals.InputFile.Value().(*os.File)
 		if !localVarFileOk {
-				return nil, reportError("inputFile should be *os.File")
+				return localVarReturnValue, nil, reportError("inputFile should be *os.File")
 		}
 	}
 	if localVarFile != nil {
@@ -102,20 +103,27 @@ func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals
 	}
 	r, err := a.client.prepareRequest(ctx, localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHttpResponse, err := a.client.callAPI(r)
 	if err != nil || localVarHttpResponse == nil {
-		return localVarHttpResponse, err
+		return localVarReturnValue, localVarHttpResponse, err
 	}
 
 	localVarBody, err := ioutil.ReadAll(localVarHttpResponse.Body)
 	localVarHttpResponse.Body.Close()
 	if err != nil {
-		return localVarHttpResponse, err
+		return localVarReturnValue, localVarHttpResponse, err
 	}
 
+	if localVarHttpResponse.StatusCode < 300 {
+		// If we succeed, return the data, otherwise pass on to decode error.
+		err = a.client.decode(&localVarReturnValue, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+		if err == nil { 
+			return localVarReturnValue, localVarHttpResponse, err
+		}
+	}
 
 	if localVarHttpResponse.StatusCode >= 300 {
 		newErr := GenericSwaggerError{
@@ -123,33 +131,269 @@ func (a *FileSanitizationApiService) File(ctx context.Context, localVarOptionals
 			error: localVarHttpResponse.Status,
 		}
 		
-		return localVarHttpResponse, newErr
+		if localVarHttpResponse.StatusCode == 200 {
+			var v string
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 400 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 401 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		return localVarReturnValue, localVarHttpResponse, newErr
 	}
 
-	return localVarHttpResponse, nil
+	return localVarReturnValue, localVarHttpResponse, nil
 }
 
 /* 
-FileSanitizationApiService Complete Content Disarm and Reconstruction on an Input File with PDF/A Output
+FileSanitizationApiService Advanced Content Disarm and Reconstruction on a File
+Processes the input file via CDR to produce a secured output file with advanced scan options and response headers containing scan metadata.
+ * @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param optional nil or *FileSanitizationApiFileAdvancedOpts - Optional Parameters:
+     * @param "AllowExecutables" (optional.Bool) -  Set to false to block executable files (EXE, DLL, etc.)
+     * @param "AllowInvalidFiles" (optional.Bool) -  Set to false to block files that are not valid for their detected type
+     * @param "AllowScripts" (optional.Bool) -  Set to false to block script files. PDF and Office macro sanitization still runs regardless.
+     * @param "AllowPasswordProtectedFiles" (optional.Bool) -  Set to false to block password-protected files
+     * @param "AllowMacros" (optional.Bool) -  Set to false to block files containing macros. Office macro removal still runs regardless.
+     * @param "AllowXmlExternalEntities" (optional.Bool) -  Set to false to block XML files with external entity references (XXE)
+     * @param "AllowInsecureDeserialization" (optional.Bool) -  Set to false to block files with insecure deserialization patterns
+     * @param "AllowHtml" (optional.Bool) -  Set to false to block HTML files
+     * @param "AllowUnsafeArchives" (optional.Bool) -  Set to false to block archive files flagged as unsafe (e.g., zip bombs)
+     * @param "AllowOleEmbeddedObject" (optional.Bool) -  Set to false to block files with embedded OLE objects
+     * @param "AllowUnwantedAction" (optional.Bool) -  Set to false to block files with unwanted actions
+     * @param "RestrictFileTypes" (optional.String) -  Comma-separated list of allowed file extensions (e.g., \&quot;.pdf,.docx,.xlsx\&quot;). Files not matching will be blocked.
+     * @param "InputFile" (optional.Interface of *os.File) -  Input document to CDR process
+
+@return string
+*/
+
+type FileSanitizationApiFileAdvancedOpts struct { 
+	AllowExecutables optional.Bool
+	AllowInvalidFiles optional.Bool
+	AllowScripts optional.Bool
+	AllowPasswordProtectedFiles optional.Bool
+	AllowMacros optional.Bool
+	AllowXmlExternalEntities optional.Bool
+	AllowInsecureDeserialization optional.Bool
+	AllowHtml optional.Bool
+	AllowUnsafeArchives optional.Bool
+	AllowOleEmbeddedObject optional.Bool
+	AllowUnwantedAction optional.Bool
+	RestrictFileTypes optional.String
+	InputFile optional.Interface
+}
+
+func (a *FileSanitizationApiService) FileAdvanced(ctx context.Context, localVarOptionals *FileSanitizationApiFileAdvancedOpts) (string, *http.Response, error) {
+	var (
+		localVarHttpMethod = strings.ToUpper("Post")
+		localVarPostBody   interface{}
+		localVarFileName   string
+		localVarFileBytes  []byte
+		localVarReturnValue string
+	)
+
+	// create path and map variables
+	localVarPath := a.client.cfg.BasePath + "/cdr/sanitization/file/advanced"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHttpContentTypes := []string{"multipart/form-data"}
+
+	// set Content-Type header
+	localVarHttpContentType := selectHeaderContentType(localVarHttpContentTypes)
+	if localVarHttpContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHttpContentType
+	}
+
+	// to determine the Accept header
+	localVarHttpHeaderAccepts := []string{"application/octet-stream"}
+
+	// set Accept header
+	localVarHttpHeaderAccept := selectHeaderAccept(localVarHttpHeaderAccepts)
+	if localVarHttpHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowExecutables.IsSet() {
+		localVarHeaderParams["allowExecutables"] = parameterToString(localVarOptionals.AllowExecutables.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowInvalidFiles.IsSet() {
+		localVarHeaderParams["allowInvalidFiles"] = parameterToString(localVarOptionals.AllowInvalidFiles.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowScripts.IsSet() {
+		localVarHeaderParams["allowScripts"] = parameterToString(localVarOptionals.AllowScripts.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowPasswordProtectedFiles.IsSet() {
+		localVarHeaderParams["allowPasswordProtectedFiles"] = parameterToString(localVarOptionals.AllowPasswordProtectedFiles.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowMacros.IsSet() {
+		localVarHeaderParams["allowMacros"] = parameterToString(localVarOptionals.AllowMacros.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowXmlExternalEntities.IsSet() {
+		localVarHeaderParams["allowXmlExternalEntities"] = parameterToString(localVarOptionals.AllowXmlExternalEntities.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowInsecureDeserialization.IsSet() {
+		localVarHeaderParams["allowInsecureDeserialization"] = parameterToString(localVarOptionals.AllowInsecureDeserialization.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowHtml.IsSet() {
+		localVarHeaderParams["allowHtml"] = parameterToString(localVarOptionals.AllowHtml.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowUnsafeArchives.IsSet() {
+		localVarHeaderParams["allowUnsafeArchives"] = parameterToString(localVarOptionals.AllowUnsafeArchives.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowOleEmbeddedObject.IsSet() {
+		localVarHeaderParams["allowOleEmbeddedObject"] = parameterToString(localVarOptionals.AllowOleEmbeddedObject.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowUnwantedAction.IsSet() {
+		localVarHeaderParams["allowUnwantedAction"] = parameterToString(localVarOptionals.AllowUnwantedAction.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.RestrictFileTypes.IsSet() {
+		localVarHeaderParams["restrictFileTypes"] = parameterToString(localVarOptionals.RestrictFileTypes.Value(), "")
+	}
+    var localVarFile *os.File
+	if localVarOptionals != nil && localVarOptionals.InputFile.IsSet() {
+		localVarFileOk := false
+		localVarFile, localVarFileOk = localVarOptionals.InputFile.Value().(*os.File)
+		if !localVarFileOk {
+				return localVarReturnValue, nil, reportError("inputFile should be *os.File")
+		}
+	}
+	if localVarFile != nil {
+		fbs, _ := ioutil.ReadAll(localVarFile)
+		localVarFileBytes = fbs
+		localVarFileName = localVarFile.Name()
+		localVarFile.Close()
+	}
+	if ctx != nil {
+		// API Key Authentication
+		if auth, ok := ctx.Value(ContextAPIKey).(APIKey); ok {
+			var key string
+			if auth.Prefix != "" {
+				key = auth.Prefix + " " + auth.Key
+			} else {
+				key = auth.Key
+			}
+			localVarHeaderParams["Apikey"] = key
+			
+		}
+	}
+	r, err := a.client.prepareRequest(ctx, localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHttpResponse, err := a.client.callAPI(r)
+	if err != nil || localVarHttpResponse == nil {
+		return localVarReturnValue, localVarHttpResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHttpResponse.Body)
+	localVarHttpResponse.Body.Close()
+	if err != nil {
+		return localVarReturnValue, localVarHttpResponse, err
+	}
+
+	if localVarHttpResponse.StatusCode < 300 {
+		// If we succeed, return the data, otherwise pass on to decode error.
+		err = a.client.decode(&localVarReturnValue, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+		if err == nil { 
+			return localVarReturnValue, localVarHttpResponse, err
+		}
+	}
+
+	if localVarHttpResponse.StatusCode >= 300 {
+		newErr := GenericSwaggerError{
+			body: localVarBody,
+			error: localVarHttpResponse.Status,
+		}
+		
+		if localVarHttpResponse.StatusCode == 200 {
+			var v string
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 400 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 401 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		return localVarReturnValue, localVarHttpResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHttpResponse, nil
+}
+
+/* 
+FileSanitizationApiService Content Disarm and Reconstruction on a File with PDFA Output
 Processes the input file via CDR to produce a secured PDF/A output file.  Input content is parsed, disarmed, and then reconstructed into a new PDF/A output file.
  * @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  * @param optional nil or *FileSanitizationApiFileToPdfOpts - Optional Parameters:
      * @param "InputFile" (optional.Interface of *os.File) -  Input document, or photos of a document, to extract data from
 
-
+@return string
 */
 
 type FileSanitizationApiFileToPdfOpts struct { 
 	InputFile optional.Interface
 }
 
-func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOptionals *FileSanitizationApiFileToPdfOpts) (*http.Response, error) {
+func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOptionals *FileSanitizationApiFileToPdfOpts) (string, *http.Response, error) {
 	var (
 		localVarHttpMethod = strings.ToUpper("Post")
 		localVarPostBody   interface{}
 		localVarFileName   string
 		localVarFileBytes  []byte
-		
+		localVarReturnValue string
 	)
 
 	// create path and map variables
@@ -169,7 +413,7 @@ func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOpti
 	}
 
 	// to determine the Accept header
-	localVarHttpHeaderAccepts := []string{}
+	localVarHttpHeaderAccepts := []string{"application/octet-stream"}
 
 	// set Accept header
 	localVarHttpHeaderAccept := selectHeaderAccept(localVarHttpHeaderAccepts)
@@ -181,7 +425,7 @@ func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOpti
 		localVarFileOk := false
 		localVarFile, localVarFileOk = localVarOptionals.InputFile.Value().(*os.File)
 		if !localVarFileOk {
-				return nil, reportError("inputFile should be *os.File")
+				return localVarReturnValue, nil, reportError("inputFile should be *os.File")
 		}
 	}
 	if localVarFile != nil {
@@ -205,20 +449,27 @@ func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOpti
 	}
 	r, err := a.client.prepareRequest(ctx, localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHttpResponse, err := a.client.callAPI(r)
 	if err != nil || localVarHttpResponse == nil {
-		return localVarHttpResponse, err
+		return localVarReturnValue, localVarHttpResponse, err
 	}
 
 	localVarBody, err := ioutil.ReadAll(localVarHttpResponse.Body)
 	localVarHttpResponse.Body.Close()
 	if err != nil {
-		return localVarHttpResponse, err
+		return localVarReturnValue, localVarHttpResponse, err
 	}
 
+	if localVarHttpResponse.StatusCode < 300 {
+		// If we succeed, return the data, otherwise pass on to decode error.
+		err = a.client.decode(&localVarReturnValue, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+		if err == nil { 
+			return localVarReturnValue, localVarHttpResponse, err
+		}
+	}
 
 	if localVarHttpResponse.StatusCode >= 300 {
 		newErr := GenericSwaggerError{
@@ -226,8 +477,244 @@ func (a *FileSanitizationApiService) FileToPdf(ctx context.Context, localVarOpti
 			error: localVarHttpResponse.Status,
 		}
 		
-		return localVarHttpResponse, newErr
+		if localVarHttpResponse.StatusCode == 200 {
+			var v string
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 400 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 401 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		return localVarReturnValue, localVarHttpResponse, newErr
 	}
 
-	return localVarHttpResponse, nil
+	return localVarReturnValue, localVarHttpResponse, nil
+}
+
+/* 
+FileSanitizationApiService Advanced Content Disarm and Reconstruction on a File with PDFA Output
+Processes the input file via CDR to produce a secured PDF/A output file with advanced scan options and response headers containing scan metadata.
+ * @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param optional nil or *FileSanitizationApiFileToPdfAdvancedOpts - Optional Parameters:
+     * @param "AllowExecutables" (optional.Bool) -  Set to false to block executable files (EXE, DLL, etc.)
+     * @param "AllowInvalidFiles" (optional.Bool) -  Set to false to block files that are not valid for their detected type
+     * @param "AllowScripts" (optional.Bool) -  Set to false to block script files. PDF and Office macro sanitization still runs regardless.
+     * @param "AllowPasswordProtectedFiles" (optional.Bool) -  Set to false to block password-protected files
+     * @param "AllowMacros" (optional.Bool) -  Set to false to block files containing macros. Office macro removal still runs regardless.
+     * @param "AllowXmlExternalEntities" (optional.Bool) -  Set to false to block XML files with external entity references (XXE)
+     * @param "AllowInsecureDeserialization" (optional.Bool) -  Set to false to block files with insecure deserialization patterns
+     * @param "AllowHtml" (optional.Bool) -  Set to false to block HTML files
+     * @param "AllowUnsafeArchives" (optional.Bool) -  Set to false to block archive files flagged as unsafe (e.g., zip bombs)
+     * @param "AllowOleEmbeddedObject" (optional.Bool) -  Set to false to block files with embedded OLE objects
+     * @param "AllowUnwantedAction" (optional.Bool) -  Set to false to block files with unwanted actions
+     * @param "RestrictFileTypes" (optional.String) -  Comma-separated list of allowed file extensions (e.g., \&quot;.pdf,.docx,.xlsx\&quot;). Files not matching will be blocked.
+     * @param "InputFile" (optional.Interface of *os.File) -  Input document to CDR process
+
+@return string
+*/
+
+type FileSanitizationApiFileToPdfAdvancedOpts struct { 
+	AllowExecutables optional.Bool
+	AllowInvalidFiles optional.Bool
+	AllowScripts optional.Bool
+	AllowPasswordProtectedFiles optional.Bool
+	AllowMacros optional.Bool
+	AllowXmlExternalEntities optional.Bool
+	AllowInsecureDeserialization optional.Bool
+	AllowHtml optional.Bool
+	AllowUnsafeArchives optional.Bool
+	AllowOleEmbeddedObject optional.Bool
+	AllowUnwantedAction optional.Bool
+	RestrictFileTypes optional.String
+	InputFile optional.Interface
+}
+
+func (a *FileSanitizationApiService) FileToPdfAdvanced(ctx context.Context, localVarOptionals *FileSanitizationApiFileToPdfAdvancedOpts) (string, *http.Response, error) {
+	var (
+		localVarHttpMethod = strings.ToUpper("Post")
+		localVarPostBody   interface{}
+		localVarFileName   string
+		localVarFileBytes  []byte
+		localVarReturnValue string
+	)
+
+	// create path and map variables
+	localVarPath := a.client.cfg.BasePath + "/cdr/sanitization/file/to/pdf/advanced"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHttpContentTypes := []string{"multipart/form-data"}
+
+	// set Content-Type header
+	localVarHttpContentType := selectHeaderContentType(localVarHttpContentTypes)
+	if localVarHttpContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHttpContentType
+	}
+
+	// to determine the Accept header
+	localVarHttpHeaderAccepts := []string{"application/octet-stream"}
+
+	// set Accept header
+	localVarHttpHeaderAccept := selectHeaderAccept(localVarHttpHeaderAccepts)
+	if localVarHttpHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowExecutables.IsSet() {
+		localVarHeaderParams["allowExecutables"] = parameterToString(localVarOptionals.AllowExecutables.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowInvalidFiles.IsSet() {
+		localVarHeaderParams["allowInvalidFiles"] = parameterToString(localVarOptionals.AllowInvalidFiles.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowScripts.IsSet() {
+		localVarHeaderParams["allowScripts"] = parameterToString(localVarOptionals.AllowScripts.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowPasswordProtectedFiles.IsSet() {
+		localVarHeaderParams["allowPasswordProtectedFiles"] = parameterToString(localVarOptionals.AllowPasswordProtectedFiles.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowMacros.IsSet() {
+		localVarHeaderParams["allowMacros"] = parameterToString(localVarOptionals.AllowMacros.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowXmlExternalEntities.IsSet() {
+		localVarHeaderParams["allowXmlExternalEntities"] = parameterToString(localVarOptionals.AllowXmlExternalEntities.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowInsecureDeserialization.IsSet() {
+		localVarHeaderParams["allowInsecureDeserialization"] = parameterToString(localVarOptionals.AllowInsecureDeserialization.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowHtml.IsSet() {
+		localVarHeaderParams["allowHtml"] = parameterToString(localVarOptionals.AllowHtml.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowUnsafeArchives.IsSet() {
+		localVarHeaderParams["allowUnsafeArchives"] = parameterToString(localVarOptionals.AllowUnsafeArchives.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowOleEmbeddedObject.IsSet() {
+		localVarHeaderParams["allowOleEmbeddedObject"] = parameterToString(localVarOptionals.AllowOleEmbeddedObject.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.AllowUnwantedAction.IsSet() {
+		localVarHeaderParams["allowUnwantedAction"] = parameterToString(localVarOptionals.AllowUnwantedAction.Value(), "")
+	}
+	if localVarOptionals != nil && localVarOptionals.RestrictFileTypes.IsSet() {
+		localVarHeaderParams["restrictFileTypes"] = parameterToString(localVarOptionals.RestrictFileTypes.Value(), "")
+	}
+    var localVarFile *os.File
+	if localVarOptionals != nil && localVarOptionals.InputFile.IsSet() {
+		localVarFileOk := false
+		localVarFile, localVarFileOk = localVarOptionals.InputFile.Value().(*os.File)
+		if !localVarFileOk {
+				return localVarReturnValue, nil, reportError("inputFile should be *os.File")
+		}
+	}
+	if localVarFile != nil {
+		fbs, _ := ioutil.ReadAll(localVarFile)
+		localVarFileBytes = fbs
+		localVarFileName = localVarFile.Name()
+		localVarFile.Close()
+	}
+	if ctx != nil {
+		// API Key Authentication
+		if auth, ok := ctx.Value(ContextAPIKey).(APIKey); ok {
+			var key string
+			if auth.Prefix != "" {
+				key = auth.Prefix + " " + auth.Key
+			} else {
+				key = auth.Key
+			}
+			localVarHeaderParams["Apikey"] = key
+			
+		}
+	}
+	r, err := a.client.prepareRequest(ctx, localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHttpResponse, err := a.client.callAPI(r)
+	if err != nil || localVarHttpResponse == nil {
+		return localVarReturnValue, localVarHttpResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHttpResponse.Body)
+	localVarHttpResponse.Body.Close()
+	if err != nil {
+		return localVarReturnValue, localVarHttpResponse, err
+	}
+
+	if localVarHttpResponse.StatusCode < 300 {
+		// If we succeed, return the data, otherwise pass on to decode error.
+		err = a.client.decode(&localVarReturnValue, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+		if err == nil { 
+			return localVarReturnValue, localVarHttpResponse, err
+		}
+	}
+
+	if localVarHttpResponse.StatusCode >= 300 {
+		newErr := GenericSwaggerError{
+			body: localVarBody,
+			error: localVarHttpResponse.Status,
+		}
+		
+		if localVarHttpResponse.StatusCode == 200 {
+			var v string
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 400 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		if localVarHttpResponse.StatusCode == 401 {
+			var v ProblemDetails
+			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"));
+				if err != nil {
+					newErr.error = err.Error()
+					return localVarReturnValue, localVarHttpResponse, newErr
+				}
+				newErr.model = v
+				return localVarReturnValue, localVarHttpResponse, newErr
+		}
+		
+		return localVarReturnValue, localVarHttpResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHttpResponse, nil
 }

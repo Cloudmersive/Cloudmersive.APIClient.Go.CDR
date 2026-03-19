@@ -17,14 +17,15 @@ paths:
     post:
       tags:
       - "FileSanitization"
-      summary: "Complete Content Disarm and Reconstruction on an Input File, and output\
-        \ in same file format"
+      summary: "Content Disarm and Reconstruction on a File"
       description: "Processes the input file via CDR to produce a secured output file.\
         \  Input content is parsed, disarmed, and then reconstructed into a new output\
         \ file with the same file format as the input."
       operationId: "File"
       consumes:
       - "multipart/form-data"
+      produces:
+      - "application/octet-stream"
       parameters:
       - name: "InputFile"
         in: "formData"
@@ -35,18 +36,214 @@ paths:
       responses:
         "200":
           description: "OK"
+          schema:
+            type: "string"
+            format: "binary"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+        "401":
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+  /cdr/sanitization/file/advanced:
+    post:
+      tags:
+      - "FileSanitization"
+      summary: "Advanced Content Disarm and Reconstruction on a File"
+      description: "Processes the input file via CDR to produce a secured output file\
+        \ with advanced scan options and response headers containing scan metadata."
+      operationId: "FileAdvanced"
+      consumes:
+      - "multipart/form-data"
+      produces:
+      - "application/octet-stream"
+      parameters:
+      - name: "allowExecutables"
+        in: "header"
+        description: "Set to false to block executable files (EXE, DLL, etc.)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowExecutables"
+        x-optionalDataType: "Bool"
+      - name: "allowInvalidFiles"
+        in: "header"
+        description: "Set to false to block files that are not valid for their detected\
+          \ type"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowInvalidFiles"
+        x-optionalDataType: "Bool"
+      - name: "allowScripts"
+        in: "header"
+        description: "Set to false to block script files. PDF and Office macro sanitization\
+          \ still runs regardless."
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowScripts"
+        x-optionalDataType: "Bool"
+      - name: "allowPasswordProtectedFiles"
+        in: "header"
+        description: "Set to false to block password-protected files"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowPasswordProtectedFiles"
+        x-optionalDataType: "Bool"
+      - name: "allowMacros"
+        in: "header"
+        description: "Set to false to block files containing macros. Office macro\
+          \ removal still runs regardless."
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowMacros"
+        x-optionalDataType: "Bool"
+      - name: "allowXmlExternalEntities"
+        in: "header"
+        description: "Set to false to block XML files with external entity references\
+          \ (XXE)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowXmlExternalEntities"
+        x-optionalDataType: "Bool"
+      - name: "allowInsecureDeserialization"
+        in: "header"
+        description: "Set to false to block files with insecure deserialization patterns"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowInsecureDeserialization"
+        x-optionalDataType: "Bool"
+      - name: "allowHtml"
+        in: "header"
+        description: "Set to false to block HTML files"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowHtml"
+        x-optionalDataType: "Bool"
+      - name: "allowUnsafeArchives"
+        in: "header"
+        description: "Set to false to block archive files flagged as unsafe (e.g.,\
+          \ zip bombs)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowUnsafeArchives"
+        x-optionalDataType: "Bool"
+      - name: "allowOleEmbeddedObject"
+        in: "header"
+        description: "Set to false to block files with embedded OLE objects"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowOleEmbeddedObject"
+        x-optionalDataType: "Bool"
+      - name: "allowUnwantedAction"
+        in: "header"
+        description: "Set to false to block files with unwanted actions"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowUnwantedAction"
+        x-optionalDataType: "Bool"
+      - name: "restrictFileTypes"
+        in: "header"
+        description: "Comma-separated list of allowed file extensions (e.g., \".pdf,.docx,.xlsx\"\
+          ). Files not matching will be blocked."
+        required: false
+        type: "string"
+        x-exportParamName: "RestrictFileTypes"
+        x-optionalDataType: "String"
+      - name: "InputFile"
+        in: "formData"
+        description: "Input document to CDR process"
+        required: false
+        type: "file"
+        x-exportParamName: "InputFile"
+      responses:
+        "200":
+          description: "OK"
+          headers:
+            X-CDR-CleanResult:
+              type: "boolean"
+              description: "Whether the file passed the virus scan"
+            X-CDR-ContainsExecutable:
+              type: "boolean"
+              description: "File contains executable content"
+            X-CDR-ContainsInvalidFile:
+              type: "boolean"
+              description: "File is invalid for its detected type"
+            X-CDR-ContainsScript:
+              type: "boolean"
+              description: "File contains scripts"
+            X-CDR-ContainsPasswordProtectedFile:
+              type: "boolean"
+              description: "File is password-protected"
+            X-CDR-ContainsRestrictedFileFormat:
+              type: "boolean"
+              description: "File is a restricted format"
+            X-CDR-ContainsMacros:
+              type: "boolean"
+              description: "File contains macros"
+            X-CDR-ContainsXmlExternalEntities:
+              type: "boolean"
+              description: "File has XXE references"
+            X-CDR-ContainsInsecureDeserialization:
+              type: "boolean"
+              description: "File has insecure deserialization"
+            X-CDR-ContainsHtml:
+              type: "boolean"
+              description: "File contains HTML"
+            X-CDR-ContainsUnsafeArchive:
+              type: "boolean"
+              description: "File is an unsafe archive"
+            X-CDR-ContainsOleEmbeddedObject:
+              type: "boolean"
+              description: "File has OLE embedded objects"
+            X-CDR-ContainsUnwantedAction:
+              type: "boolean"
+              description: "File has unwanted actions"
+            X-CDR-ContainsJSON:
+              type: "boolean"
+              description: "File contains JSON"
+            X-CDR-ContainsXML:
+              type: "boolean"
+              description: "File contains XML"
+            X-CDR-ContainsImage:
+              type: "boolean"
+              description: "File contains images"
+            X-CDR-IsAuthenticodeSigned:
+              type: "boolean"
+              description: "File is Authenticode signed"
+            X-CDR-VerifiedFileFormat:
+              type: "string"
+              description: "Detected file format (e.g., .docx)"
+            X-CDR-FoundViruses:
+              type: "string"
+              description: "JSON array of found virus names, or empty if clean"
+            X-CDR-HashSHA1:
+              type: "string"
+              description: "SHA1 hash of the input file"
+          schema:
+            type: "string"
+            format: "binary"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+        "401":
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
   /cdr/sanitization/file/to/pdf:
     post:
       tags:
       - "FileSanitization"
-      summary: "Complete Content Disarm and Reconstruction on an Input File with PDF/A\
-        \ Output"
+      summary: "Content Disarm and Reconstruction on a File with PDFA Output"
       description: "Processes the input file via CDR to produce a secured PDF/A output\
         \ file.  Input content is parsed, disarmed, and then reconstructed into a\
         \ new PDF/A output file."
       operationId: "FileToPdf"
       consumes:
       - "multipart/form-data"
+      produces:
+      - "application/octet-stream"
       parameters:
       - name: "InputFile"
         in: "formData"
@@ -57,10 +254,220 @@ paths:
       responses:
         "200":
           description: "OK"
+          schema:
+            type: "string"
+            format: "binary"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+        "401":
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+  /cdr/sanitization/file/to/pdf/advanced:
+    post:
+      tags:
+      - "FileSanitization"
+      summary: "Advanced Content Disarm and Reconstruction on a File with PDFA Output"
+      description: "Processes the input file via CDR to produce a secured PDF/A output\
+        \ file with advanced scan options and response headers containing scan metadata."
+      operationId: "FileToPdfAdvanced"
+      consumes:
+      - "multipart/form-data"
+      produces:
+      - "application/octet-stream"
+      parameters:
+      - name: "allowExecutables"
+        in: "header"
+        description: "Set to false to block executable files (EXE, DLL, etc.)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowExecutables"
+        x-optionalDataType: "Bool"
+      - name: "allowInvalidFiles"
+        in: "header"
+        description: "Set to false to block files that are not valid for their detected\
+          \ type"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowInvalidFiles"
+        x-optionalDataType: "Bool"
+      - name: "allowScripts"
+        in: "header"
+        description: "Set to false to block script files. PDF and Office macro sanitization\
+          \ still runs regardless."
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowScripts"
+        x-optionalDataType: "Bool"
+      - name: "allowPasswordProtectedFiles"
+        in: "header"
+        description: "Set to false to block password-protected files"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowPasswordProtectedFiles"
+        x-optionalDataType: "Bool"
+      - name: "allowMacros"
+        in: "header"
+        description: "Set to false to block files containing macros. Office macro\
+          \ removal still runs regardless."
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowMacros"
+        x-optionalDataType: "Bool"
+      - name: "allowXmlExternalEntities"
+        in: "header"
+        description: "Set to false to block XML files with external entity references\
+          \ (XXE)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowXmlExternalEntities"
+        x-optionalDataType: "Bool"
+      - name: "allowInsecureDeserialization"
+        in: "header"
+        description: "Set to false to block files with insecure deserialization patterns"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowInsecureDeserialization"
+        x-optionalDataType: "Bool"
+      - name: "allowHtml"
+        in: "header"
+        description: "Set to false to block HTML files"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowHtml"
+        x-optionalDataType: "Bool"
+      - name: "allowUnsafeArchives"
+        in: "header"
+        description: "Set to false to block archive files flagged as unsafe (e.g.,\
+          \ zip bombs)"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowUnsafeArchives"
+        x-optionalDataType: "Bool"
+      - name: "allowOleEmbeddedObject"
+        in: "header"
+        description: "Set to false to block files with embedded OLE objects"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowOleEmbeddedObject"
+        x-optionalDataType: "Bool"
+      - name: "allowUnwantedAction"
+        in: "header"
+        description: "Set to false to block files with unwanted actions"
+        required: false
+        type: "boolean"
+        x-exportParamName: "AllowUnwantedAction"
+        x-optionalDataType: "Bool"
+      - name: "restrictFileTypes"
+        in: "header"
+        description: "Comma-separated list of allowed file extensions (e.g., \".pdf,.docx,.xlsx\"\
+          ). Files not matching will be blocked."
+        required: false
+        type: "string"
+        x-exportParamName: "RestrictFileTypes"
+        x-optionalDataType: "String"
+      - name: "InputFile"
+        in: "formData"
+        description: "Input document to CDR process"
+        required: false
+        type: "file"
+        x-exportParamName: "InputFile"
+      responses:
+        "200":
+          description: "OK"
+          headers:
+            X-CDR-CleanResult:
+              type: "boolean"
+              description: "Whether the file passed the virus scan"
+            X-CDR-ContainsExecutable:
+              type: "boolean"
+              description: "File contains executable content"
+            X-CDR-ContainsInvalidFile:
+              type: "boolean"
+              description: "File is invalid for its detected type"
+            X-CDR-ContainsScript:
+              type: "boolean"
+              description: "File contains scripts"
+            X-CDR-ContainsPasswordProtectedFile:
+              type: "boolean"
+              description: "File is password-protected"
+            X-CDR-ContainsRestrictedFileFormat:
+              type: "boolean"
+              description: "File is a restricted format"
+            X-CDR-ContainsMacros:
+              type: "boolean"
+              description: "File contains macros"
+            X-CDR-ContainsXmlExternalEntities:
+              type: "boolean"
+              description: "File has XXE references"
+            X-CDR-ContainsInsecureDeserialization:
+              type: "boolean"
+              description: "File has insecure deserialization"
+            X-CDR-ContainsHtml:
+              type: "boolean"
+              description: "File contains HTML"
+            X-CDR-ContainsUnsafeArchive:
+              type: "boolean"
+              description: "File is an unsafe archive"
+            X-CDR-ContainsOleEmbeddedObject:
+              type: "boolean"
+              description: "File has OLE embedded objects"
+            X-CDR-ContainsUnwantedAction:
+              type: "boolean"
+              description: "File has unwanted actions"
+            X-CDR-ContainsJSON:
+              type: "boolean"
+              description: "File contains JSON"
+            X-CDR-ContainsXML:
+              type: "boolean"
+              description: "File contains XML"
+            X-CDR-ContainsImage:
+              type: "boolean"
+              description: "File contains images"
+            X-CDR-IsAuthenticodeSigned:
+              type: "boolean"
+              description: "File is Authenticode signed"
+            X-CDR-VerifiedFileFormat:
+              type: "string"
+              description: "Detected file format (e.g., .docx)"
+            X-CDR-FoundViruses:
+              type: "string"
+              description: "JSON array of found virus names, or empty if clean"
+            X-CDR-HashSHA1:
+              type: "string"
+              description: "SHA1 hash of the input file"
+          schema:
+            type: "string"
+            format: "binary"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
+        "401":
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/ProblemDetails"
 securityDefinitions:
   Apikey:
     description: "API Key Authentication"
     type: "apiKey"
     name: "Apikey"
     in: "header"
-definitions: {}
+definitions:
+  ProblemDetails:
+    type: "object"
+    properties:
+      type:
+        type: "string"
+      title:
+        type: "string"
+      status:
+        type: "integer"
+        format: "int32"
+      detail:
+        type: "string"
+      instance:
+        type: "string"
+    additionalProperties: {}
